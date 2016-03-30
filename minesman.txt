@@ -1,0 +1,880 @@
+#include <iostream>
+#include <ctime>
+#include<conio.h>
+#include<Windows.h>
+
+using namespace std;
+void printChar(int size, char ch);
+struct Node
+{
+	int data;
+	char character;
+	Node * Up, *down, *left, *right;
+	bool hiddenKey;
+	Node()
+	{
+		data = 0;
+		character = '\0';
+		this->Up = this->left = this->right = this->down = nullptr;
+		this->hiddenKey = false;
+	}
+};
+class Board
+{
+private:
+	Node * head, *current, *temp, *playerPtr; ;
+	int size;		//to stor the dimensions of the board
+	int getSize();  //getter function to retrieve the dimensions of the board
+	void placeKey(); 
+	char wall;
+	char brick;
+	char playerChar;
+	char mineChar;
+	char keyChar;
+	char path;
+	void giveTwoRandN(int & num1 , int & num2);	//returns two random numbers according to program requirment
+	int numOfkeys ;
+	bool winCondition;
+	bool loseCondition;
+	Node * minePtr;
+	bool mineIsPlaced;
+	
+	
+	
+	void startTimer();
+	int startTime;
+	int endTime;
+	
+	
+public:
+	void setSize(int); //setter function to set the size of the dimension
+	Board(); //constructor
+	~Board(); //destructor
+	bool isempty() const;  //determine wether the board is empty or not
+	void makeboard(); //this function links all the board using linked lists
+	void printboard(); //prints the game board
+	int welcome();	//displays welcom screen for the game
+	int inputDimensions();	//input the dimensions of the map
+	//places a single key on the map randomly
+	void loseGame();
+	void placeAllKeys();
+	void placePlayer();
+	void playGame();
+	bool timeToBlast();
+	void placeMine();
+	void congratulation();
+	bool checkWinLose();
+	void setWinCondition(bool parameter);
+	void setLoseCondition(bool parameter);
+	void setMineIsplaced(bool parameter);
+	bool getMineIsPlaced();
+	bool getWinCondition();
+	bool getLoseCondition();
+	void Board ::blastMine();
+	
+};
+Board::Board()
+{
+	head = current = temp = nullptr;
+	size=0;
+	this ->wall = static_cast <char> (219);
+	this ->brick = static_cast <char> (176);
+	this ->playerChar = static_cast <char> (1);
+	this ->path = ' ';
+	this ->keyChar = 'K';
+	this ->mineChar = 'M' ;
+	this ->winCondition = false ;
+	this ->loseCondition = false;
+	this ->playerPtr = new Node;
+	this ->minePtr  = new Node;
+	this ->mineIsPlaced = false;
+}
+bool Board::isempty() const
+{
+	return (this->head == NULL);
+}
+void Board::setSize(int S)
+{
+	this->size=S;
+}
+int Board::getSize()
+{
+	return this->size;
+}
+void Board::makeboard()
+{
+	int size = this->getSize();
+	int D=1;
+	for (int i=0;i<this->getSize();i++)
+	{
+		for (int j=0;j<this->getSize();j++)
+		{
+			Node *newnode=new Node;
+			newnode->down=newnode->left=newnode->right=newnode->Up=0;
+			newnode->data=rand()%(size*size);
+			//cout<<"newNode->data : " << newnode->data << endl ;
+			if(newnode->data%7==0 )  // randomly placing walls
+				newnode->character=wall;//solid wall
+			else if(newnode->data%11==0 ||newnode->data%9==0 || newnode->data % 3==0 )  // randomly placing bricks
+				newnode->character=brick; // bricks
+			else
+				newnode->character=' ';
+	
+			 if(i==0 ||i==this->getSize()-1 ||j==0 ||j==this->getSize()-1)
+				newnode->character = wall;  // walls on the boundary of the board
+			
+			if (i==0)
+			{
+				if (head==0)
+					current=temp=head=newnode;
+				else
+				{
+					current->right=newnode;
+					newnode->left=current;
+					current=current->right;
+				}
+
+			}
+			else
+				if(i%2==0)
+				{
+					if (j==0)
+					{
+						current->down=newnode;
+						newnode->Up=current;
+						current=current->down;
+					}
+					else
+					{
+						current->right=newnode;
+						newnode->left=current;
+						newnode->Up=current->Up->right;
+						current->Up->right->down=newnode;
+						current=current->right;
+					}
+				}
+				else if (i%2!=0)
+				{
+					if (j==0)
+					{
+						current->down=newnode;
+						newnode->Up=current;
+						current=current->down;
+					}
+					else
+					{
+						current->left=newnode;
+						newnode->right=current;
+						newnode->Up=current->Up->left;
+						current->Up->left->down=newnode;
+						current=current->left;
+					}
+				}
+		}
+	}
+
+}
+void Board::printboard()
+{
+	system("cls");
+	if(! this ->isempty() )
+	{
+		temp=current=head;
+	int j=1;
+	int size = this->getSize();
+	/*for(int i=0;i<this->getSize();i++)
+	{
+		cout<<"-";
+	}*/
+	cout<<endl;
+	for (int i=1; i<=size*size; i++)
+	{
+
+		cout<<current->character;
+
+
+		if (j%2!=0 && i%size!=0)
+		{
+			current=current->right;
+		}
+		else if (j%2==0 && i%size!=0)
+		{
+			current=current->right;
+		}
+		if (i%size==0)
+		{
+			cout<<endl;
+			current=temp->down;
+			temp = temp->down;
+			j++;
+		}
+
+	}
+	//for(int i=0;i<this->getSize();i++)
+	//{
+	//	cout<<"-";
+	//}
+	//cout<<endl;
+	}
+	
+}
+Board::~Board()
+{
+	Node * P ;
+	this->current=this->head;
+	this->temp=this->head->down;
+	int size  = this->getSize()-1;
+	for(int row = 0 ;row <size ; row++)
+	{
+	for(int col=0; col <size ; col++)
+		{
+			P=this->current;
+			this->current=this->current->right;
+			delete P;
+
+		}
+	this->current=this->temp;
+	this->temp=current->down;
+	}
+	//system("pause");
+
+}
+int Board :: welcome()
+{
+	system("color fd");
+	char ch =  this ->wall;
+	cout <<"\t\t\tWelcome to Mines Man Game " << endl << endl;
+	printChar(24, ' ');
+	printChar(25, ch);
+	cout <<endl;
+	printChar(24, ' ');
+	cout << ch << "\t1. Play \t" <<ch << endl;
+	printChar(24, ' ');
+	cout << ch << "\t2. Quit \t" <<ch << endl;
+	printChar(24, ' ');
+	printChar(25, ch);
+	int choice;
+	cout << endl << endl;
+	printChar(35, ' ');
+	char valid = false;
+	while(valid == false)
+	{
+			cin>> choice;
+		if(choice == 1)
+		{
+			return 1;
+			valid = true;
+		}
+
+		else if(choice == 2)
+			exit(0);
+		else
+		{
+			printChar(24, ' ');
+			cout << "Invalid Choice , Please Enter Again " << endl;
+			printChar(35, ' ');
+		}
+	}
+}
+int Board ::inputDimensions()
+{
+	system("cls");
+	int size = 0;
+	bool valid = false;
+	cout << "Enter the Dimensions for the Map of Mines Man ( 10 - 25 ) : ";
+	while(valid == false)
+	{
+		cin >> size;
+			if(size>=10	&& size<=25)
+		{
+			this->setSize(size);
+			valid = true;
+		}
+	
+		else
+		{
+			cout << endl << endl;
+			cout<<"Minimium Dimension for Game Board is 10 and Maximium is 25."<<endl << endl;
+			cout << " Please Enter Again : " ;
+		
+		}
+	
+	}
+	
+	return size;
+}
+void Board :: placeKey()
+{
+	this->temp = this ->head;
+	int size = this ->getSize();
+	int num1,
+		num2;
+	//get two random numbers to move through rows and columns
+	giveTwoRandN(num1, num2);
+	//cout << "Num1 : Rows to move  : " << num1<< endl;
+	
+	for(int row = 0 ; row <num1; row++)
+	{
+		//Moving through rows to place a key
+		temp = temp ->down;
+	}
+	
+	//Now Moving through columns
+	//cout << "Num2 : cols to Move  : " << num2 << endl;
+	
+	for(int col = 0 ; col <num2; col++)
+	{
+		//Moving through rows to place a key
+		temp = temp ->right;
+	}
+	
+	//if there is already a key placed at this location Or this place is surrounded by walls, so key can 't be placed 
+	if(temp->hiddenKey == true ||			
+		( temp->Up   ->character == wall    && 
+		 temp ->down ->character == wall    && 
+		 temp ->left ->character ==wall     && 
+		 temp ->right ->character ==wall )
+								|| temp ->character == wall)   //or if that position is occupied by a wall
+	{
+		//cout <<"There is already a key at this location Or\n"
+			//"this place is surrounded by walls, \nor this location "
+			//"is a wall so key can 't be placed here\n Trying Again \n" << endl <<endl;
+		placeKey();					//try again to place a key
+	}
+	
+	
+	else
+	{
+		//hide a key under this location
+		temp ->hiddenKey = true;
+
+	//	//For checking purpose that up, left , down and right have correct links
+		//temp->character = 'K';
+	//temp->left->character = 'L';
+	//temp->right->character = 'R';
+	//temp->Up->character =  'U';
+	//temp->down->character = 'D';
+
+	}
+	
+}
+void Board ::placeAllKeys()
+{
+	
+	int size = this->getSize();
+	if(size <=15)
+		numOfkeys = 4;
+	else if(size > 15 && size <= 20  )
+		numOfkeys = 5;
+	else if(size > 20 && size <=25)
+		numOfkeys = 6;
+
+	for(int i=0 ; i<numOfkeys ; i++)
+	{
+		this->placeKey();
+	}
+
+}
+void Board ::placePlayer()
+{
+	bool placeIsFound = false;
+	if(head != NULL)
+	{
+		temp = head;
+		temp = temp -> down -> right; //Player can't be place over to left corner of the boundary
+		//temp ->character = 'a';
+		int rows , cols;
+		giveTwoRandN(rows , cols);
+
+		for(int i = 0 ; i < rows ; i++)  // randomly moving the player to some position
+		{
+			temp = temp ->down;
+		}
+		
+		for(int i = 0 ; i < cols; i++)  // randomly moving the player to some position
+		{
+			temp = temp ->right;
+		}
+	
+	
+		
+		
+		if(temp ->character == ' ')  //player can only be placed on a path slot
+		{
+			//player should not be surrounded by walls from all the direction
+			if(!(temp->left->character == temp->right->character == temp->Up->character ==temp->down->character == wall))
+			{
+					if(temp -> left -> character == ' ') // if there is an empty slot at left of the location
+					{
+						//look for one more empty slot , 
+						if(temp ->right -> character == ' ' || temp ->Up -> character == ' ' || temp ->down -> character == ' ')  
+						{
+							//if one more empty slot is found, the location to place the player found, Hurrah! 
+							temp ->character = this ->playerChar;  // smiley face for player
+							placeIsFound = true;
+							playerPtr = temp;
+						}
+					}
+
+					else if(temp -> down -> character == ' ') //empty slot at left of the location
+					{
+						if(temp ->right -> character == ' ' || temp ->Up -> character == ' ' || temp ->left -> character == ' ')  
+						{
+							placeIsFound = true;
+							temp ->character = this ->playerChar;  // 
+							playerPtr = temp;
+						}
+					}
+
+					else if(temp -> Up -> character == ' ') //empty slot at left of the location
+					{
+						if(temp ->right -> character == ' ' || temp ->down -> character == ' ' || temp ->left -> character == ' ')  
+						{
+							placeIsFound = true;
+							temp ->character = this ->playerChar;  // 
+							playerPtr = temp;
+						}
+					}
+
+					else if(temp -> right-> character == ' ') //empty slot at left of the location
+					{
+						if(temp ->down -> character == ' ' || temp ->Up -> character == ' ' || temp ->left -> character == ' ')  
+						{
+							temp ->character = this ->playerChar;  // 
+							placeIsFound = true;
+							playerPtr = temp;
+						}
+					}
+
+
+
+			} // if surrounded by walls
+			
+		} // current position is not a path , eihter a wall or a brick
+			
+				
+	} // head is NULL 
+	else
+		cout << "Head found NULL in the function placePlayer " << endl;
+
+	if(placeIsFound == false )
+	{
+		placePlayer();
+	}
+}	
+void Board ::giveTwoRandN(int & num1, int & num2)
+{
+	num1 = rand() %size;
+
+	if(num1 == 0 || num1== 1)
+		num1+=4;
+	else if(num1==size-1 || num1== size -2)
+		num1-=4;
+
+	num2= rand() %size;
+	if(num2 == 0 || num2== 1)
+	{
+		num2+=3;
+	}
+	else if(num2==size-1 || num2== size -2)
+		num2-=2;
+
+}		
+void Board ::congratulation()
+{
+	char ch =  this ->wall;
+
+	for(int i = 1000; i <3000 ; i+=100)
+	{
+		
+		Beep (i,100);
+		system("cls");
+		system("color df");
+		system("color 8f");
+		system("color fd");
+
+	printChar(5, '\n');
+	printChar(24, ' ');
+	printChar(25, ch);
+	cout <<endl;
+	printChar(24, ' ');
+	
+	cout << ch << "\tCongrats\t" <<ch << endl;
+	printChar(24, ' ');
+	cout << ch << "\tGame won\t" <<ch << endl;
+	printChar(24, ' ');
+	printChar(25, ch);
+	cout << endl << endl;
+	printChar(35, ' ');
+
+	}
+	Beep (5000,1000);
+	cout <<endl << endl << endl;	
+}
+void Board ::loseGame()
+{
+	/*for (int i=2000; i>0; i-=100)
+    Beep (i,100);
+	*/
+	cout <<"You Lost " << endl << endl;
+}
+void Board ::playGame()
+{
+	//for tracking arrow keys
+
+	#define KEY_UP 72 
+	#define KEY_DOWN 80
+	#define KEY_LEFT 75
+	#define KEY_RIGHT 77
+
+	
+	char x;
+	bool continueGame = true;
+	if( !(minePtr == playerPtr ) )
+		playerPtr ->character = this ->playerChar;
+
+            x = getch();
+
+            if(x==0 || x==-32)
+            {
+                x=getch();
+                if(x==KEY_DOWN)
+                {
+					if(playerPtr ->down ->character == this->path)
+					{
+						if( ( getMineIsPlaced() ) && minePtr == playerPtr)
+						{
+							playerPtr = playerPtr ->down;
+						playerPtr->character = this ->playerChar;
+						
+							
+						}
+						else
+						{
+							playerPtr->character = this ->path;	
+							playerPtr = playerPtr ->down;
+							playerPtr->character = this ->playerChar;	
+						}
+					}
+
+					else if(playerPtr ->down->character == this ->keyChar )
+							{
+								playerPtr ->down->character = this ->playerChar;
+								this ->numOfkeys --;
+								playerPtr = playerPtr ->down;
+								playerPtr ->Up ->character = this ->path;
+							}
+
+					else
+							{
+								cout << '\a';
+							}
+                    
+                }
+
+
+                else if(x==KEY_UP)
+                {
+						if(playerPtr ->Up ->character == this->path)
+					{
+						if( ( getMineIsPlaced() ) && minePtr == playerPtr)
+						{
+							playerPtr = playerPtr ->Up;
+						playerPtr->character = this ->playerChar;
+						
+							
+						}
+						else
+						{
+							playerPtr->character = this ->path;	
+							playerPtr = playerPtr ->Up;
+							playerPtr->character = this ->playerChar;	
+						}
+
+					}
+
+						else if(playerPtr ->Up->character == this ->keyChar )
+							{
+								playerPtr ->Up->character = this ->playerChar;
+								this -> numOfkeys --;
+								playerPtr = playerPtr ->Up;
+								playerPtr ->down ->character = this ->path;
+							}
+						else
+							{
+								cout << '\a';
+							}
+		
+                    
+                }
+
+				else if(x==KEY_LEFT)
+                {
+							if(playerPtr ->left ->character == this->path)
+							{
+								if( ( getMineIsPlaced() ) && minePtr == playerPtr)
+								{
+									playerPtr = playerPtr ->left;
+								playerPtr->character = this ->playerChar;
+						
+							
+								}
+								else
+								{
+									playerPtr->character = this ->path;	
+									playerPtr = playerPtr ->left;
+									playerPtr->character = this ->playerChar;	
+								}
+							}
+
+							else if(playerPtr ->left->character == this ->keyChar )
+							{
+								playerPtr ->left ->character = this ->playerChar;
+								this ->numOfkeys --;
+								playerPtr = playerPtr ->left;
+								playerPtr ->right ->character = this ->path;
+							}
+							else
+							{
+								cout << '\a';
+							}
+
+                    
+                }
+
+				else if(x==KEY_RIGHT)
+                {
+							if(playerPtr ->right->character == this->path)
+					{
+						if( ( getMineIsPlaced() ) && minePtr == playerPtr)
+						{
+							playerPtr = playerPtr ->right;
+						playerPtr->character = this ->playerChar;
+						
+							
+						}
+						else
+						{
+							playerPtr->character = this ->path;	
+							playerPtr = playerPtr ->right;
+							playerPtr->character = this ->playerChar;	
+						}
+						//cout <<"right " << endl;
+
+					}
+							else if(playerPtr ->right ->character == this ->keyChar )
+							{
+								playerPtr ->right ->character = this ->playerChar;
+								this ->numOfkeys --;
+								playerPtr = playerPtr ->right;
+								playerPtr ->left ->character = this ->path;
+							}
+
+							else
+							{
+								cout << '\a';
+							}
+                    
+                }
+
+				
+            }
+			else if(x == 'M' || x == 'm' )
+			{
+				if( !getMineIsPlaced() )
+				{
+					placeMine();
+				}
+			}
+				else // One of the arrow keys is not pressed  , beep ()
+				{
+					
+					cout << '\a';
+				}
+
+			//if x==0 || x=224
+        //while1
+			//printboard();
+			if(this ->numOfkeys == 0)
+			{
+				continueGame = false ; //All the keys have been collected
+				winCondition = true;
+
+			}
+
+    
+			
+ }
+bool Board ::getWinCondition()
+{
+	return (this ->winCondition);
+}
+bool Board ::getLoseCondition()
+{
+	return (this ->loseCondition);
+}
+void Board ::placeMine()
+{
+	
+	minePtr = playerPtr;
+	minePtr ->character = this ->mineChar;
+	this ->mineIsPlaced = true;
+	startTimer();			
+
+}
+bool Board ::getMineIsPlaced()
+{
+	return ( this ->mineIsPlaced);
+}
+bool Board ::checkWinLose()
+{
+	bool again = false;
+	if(this ->getWinCondition() )
+		congratulation();
+	else if(this ->getLoseCondition() )
+		loseGame();
+	else
+	   again = true;
+	return again;
+}
+void Board ::startTimer()
+{
+	this ->startTime = clock();
+	this ->endTime   =startTime + 40000;
+	//cout <<endTime/1000;
+}
+bool Board ::timeToBlast()
+{
+	bool time = false;
+	if( this ->getMineIsPlaced() )
+	{
+			int temp = clock();
+		if(temp - endTime > 0 )
+		{
+			time = true;
+
+		}
+		time = false;
+	}
+	return time;
+	
+}
+void Board ::setLoseCondition(bool parameter)
+{
+	this ->loseCondition = parameter;
+}
+void Board ::setWinCondition(bool parameter)
+{
+	this ->winCondition = parameter;
+}
+void Board ::blastMine()
+{
+	//playerPtr ->character = this ->playerChar;
+	minePtr ->character = this ->path;
+	if(minePtr ->left   == playerPtr	||
+		minePtr ->right == playerPtr	||
+		minePtr ->Up    == playerPtr	||
+		minePtr ->down  == playerPtr )
+	{
+		setLoseCondition(true);
+	}
+		
+		
+	else
+	{
+		if(minePtr ->left ->character == this ->brick )
+				{
+					if(minePtr ->left ->hiddenKey == true)
+					minePtr ->left ->character = 'K' ;
+					else
+						minePtr ->left ->character = this ->path ;
+				}
+				if(minePtr ->right->character == this ->brick )
+				{
+					if(minePtr ->right ->hiddenKey == true)
+					minePtr ->right ->character = 'K' ;
+					else
+						minePtr ->right->character = this ->path ;
+				}
+				if(minePtr ->Up ->character == this ->brick )
+				{
+					if(minePtr ->Up ->hiddenKey == true)
+					minePtr ->Up ->character = 'K' ;
+					else
+						minePtr ->Up ->character = this ->path ;
+				}
+				if(minePtr ->down ->character == this ->brick )
+				{
+					if(minePtr ->down ->hiddenKey == true)
+					minePtr ->down ->character = 'K' ;
+					else
+						minePtr ->down ->character = this ->path ;
+				}
+	}
+
+		       
+}
+void Board ::setMineIsplaced(bool parameter)
+{
+	this ->mineIsPlaced = parameter;
+}
+int main()
+{
+	
+	
+
+	srand(time(0));
+	Board myBoard;
+	myBoard.welcome();
+	myBoard.inputDimensions();
+	myBoard.makeboard();
+	myBoard.placeAllKeys();
+	myBoard.placePlayer();
+	myBoard.printboard();
+	
+	while(1)
+	{
+		while(!_kbhit())
+		{
+			// if time is over ,it blasts the mine
+			if( myBoard.getMineIsPlaced() )
+			{
+				if(myBoard.timeToBlast() == true)
+				{
+					myBoard.setMineIsplaced(false);
+					myBoard.blastMine();
+					myBoard.printboard();
+				
+				}
+				if(myBoard.getLoseCondition() )
+				{
+					myBoard.loseGame();
+					return 0;
+				}
+			}
+		}
+		myBoard.playGame();
+		myBoard.printboard();
+		cin.clear();
+		if( myBoard.getWinCondition() )
+		{
+			myBoard.congratulation();
+			return 0;
+		}
+	}
+	
+	
+
+	system("pause");
+
+	return 0;
+}
+
+
+void printChar(int size, char ch)
+{
+	for(int i = 0 ; i < size ; i ++ )
+	{
+		cout <<ch;
+	}
+}
